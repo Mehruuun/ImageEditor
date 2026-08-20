@@ -4,8 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 using WpfApp1.Interfaces;
+using WpfApp1.Models;
 using WpfApp1.Services;
-
+using System.Linq;
 namespace WpfApp1.ViewModels
 {
     public class SignUpViewModel : INotifyPropertyChanged
@@ -20,8 +21,9 @@ namespace WpfApp1.ViewModels
                 MessageBox.Show("رمز عبور مطابقت ندارد");
                 return;
             }
-            var db = new DatabaseService();
-            db.InsertUser(UserName, Password);
+           using var context = new AppDbContext(); 
+            context.Users.Add(new UserInfo { username = UserName, password = Password });
+            context.SaveChanges();
            
         AccountCreated?.Invoke(this, EventArgs.Empty);
             

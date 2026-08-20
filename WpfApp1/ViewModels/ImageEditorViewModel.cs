@@ -1,25 +1,22 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
+using System.Windows.Media;
 using WpfApp1.Interfaces;
 using WpfApp1.Models;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using System;
-using System.Linq;
+using OpenCvSharp;
+using OpenCvSharp.WpfExtensions;
 using ScottPlot;
-using ScottPlot.WPF;
-using SixLabors.ImageSharp.Formats.Png;
-using System.Windows;
-
 namespace WpfApp1.ViewModels
+  
 {
     public class ImageEditorViewModel : INotifyPropertyChanged
     {
+     
         public ObservableCollection<ImageItem> Images { get; set; }
 
         private ImageItem _selectedImage;
@@ -38,8 +35,19 @@ namespace WpfApp1.ViewModels
         private float _contrast = 1.0f;
         private float _sharpness = 0f;
 
-        private BitmapImage _previewImage;
-        public BitmapImage PreviewImage
+        private bool _isBusy;
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                _isBusy = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private ImageSource _previewImage;
+        public ImageSource PreviewImage
         {
             get => _previewImage;
             set
@@ -58,9 +66,11 @@ namespace WpfApp1.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-
+        private readonly IImageProcessor _imageProcessor;
         public ImageEditorViewModel()
         {
+            _imageProcessor = new OpenCvImageProcessor();
+
             Images = new ObservableCollection<ImageItem>();
             string folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SampleImages");
             LoadImagesFromFolder(folderPath);
@@ -74,8 +84,8 @@ namespace WpfApp1.ViewModels
         {
             Images.Clear();
             string[] files = Directory.GetFiles(folderPath, "*.png")
-    .Concat(Directory.GetFiles(folderPath, "*.PNG"))
-    .ToArray();
+                .Concat(Directory.GetFiles(folderPath, "*.PNG"))
+                .ToArray();
 
             foreach (string file in files)
             {
@@ -85,11 +95,19 @@ namespace WpfApp1.ViewModels
                     FullPath = file
                 });
             }
+
+            // 🔽 انتخاب اولین تصویر به‌عنوان پیش‌فرض
+            if (Images.Any())
+            {
+                SelectedImage = Images.First();
+            }
+
+            
         }
 
         private void ResetAdjustments()
         {
-            _brightness = 1.0f;
+            _brightness = 0f;
             _contrast = 1.0f;
             _sharpness = 0f;
             ApplyAdjustments();
@@ -97,7 +115,7 @@ namespace WpfApp1.ViewModels
 
         private void IncreaseBrightness(object parameter)
         {
-            _brightness += 0.1f;
+            _brightness += 10f;
             ApplyAdjustments();
         }
 
@@ -116,50 +134,32 @@ namespace WpfApp1.ViewModels
         private void ApplyAdjustments()
         {
             if (SelectedImage == null) return;
-
-            try
+            using (var org = Cv2.ImRead(SelectedImage.FullPath))
             {
-                using (var image = SixLabors.ImageSharp.Image.Load<Rgba32>(SelectedImage.FullPath))
-                {
-                    image.Mutate(x =>
-                    {
-                        x.Brightness(_brightness);
-                        x.Contrast(_contrast);
-                        if (_sharpness > 0) x.GaussianSharpen(_sharpness);
-                    });
+                Mat bright = _imageProcessor.AdjustBrightness(org, _brightness);
+                Mat cont=_imageProcessor.AdjustContrast(bright, _contrast);
+                Mat sharp =  _imageProcessor.Sharpness(cont, _sharpness);
+                var bitmap = sharp.ToBitmapSource();
+                bitmap.Freeze();
+                PreviewImage = bitmap;
+                HistogramValues = _imageProcessor.GetGrayscaleValues(sharp);
 
-                    // استفاده از MemoryStream به جای فایل موقت
-                    using (var ms = new MemoryStream())
-                    {
-                        image.Save(ms, new PngEncoder());
-                        ms.Position = 0;
-
-                        var bitmap = new BitmapImage();
-                        bitmap.BeginInit();
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.StreamSource = ms;
-                        bitmap.EndInit();
-                        bitmap.Freeze();
-
-                        PreviewImage = bitmap;
-                    }
-                }
+                bright.Dispose();
+                cont.Dispose();
+                sharp.Dispose();
             }
-            catch (Exception ex)
-            {
-
-            }
-
+           
         }
-        
+        private double[] _histogramValues;
+        public double[] HistogramValues
+        {
+            get => _histogramValues;
+            set
+            {
+                _histogramValues = value;
+                OnPropertyChanged();
             }
         }
-    
 
-
-    
-
-
-
-   
-
+    }
+}

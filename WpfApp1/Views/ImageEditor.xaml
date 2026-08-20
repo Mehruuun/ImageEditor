@@ -4,39 +4,36 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1.Views"
-        xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+        xmlns:telerik="http://schemas.telerik.com/2008/xaml/presentation"
+        xmlns:wpfplot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         mc:Ignorable="d"
-        Title="ImageEditor" Height="600" Width= "900">
+        Title="ImageEditor" Height="600" Width="900">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <ListBox x:Name="ImagesList" Grid.Column="0" Margin="5"
-             ItemsSource="{Binding Images}"
-             DisplayMemberPath="FileName"
-             SelectedItem="{Binding SelectedImage}" />
-
-            <Border Grid.Column="1" Margin="5" Background="LightGray">
+            <telerik:RadListBox x:Name="ImagesList" Grid.Column="0" Margin="5"
+                ItemsSource="{Binding Images}"
+                DisplayMemberPath="FileName"
+                SelectedItem="{Binding SelectedImage}" />
+            <Border Grid.Column="1" Margin="5">
                 <Image Stretch="Uniform" Source="{Binding PreviewImage}" />
             </Border>
         </Grid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
-            <Button Content="Brightness" Command="{Binding BrightnessCommand}" Width="100" Margin="5"/>
+            <telerik:RadButton Content="Brightness" Command="{Binding BrightnessCommand}" Width="100" Margin="5"/>
             <Button Content="Contrast" Command="{Binding ContrastCommand}" Width="100" Margin="5"/>
             <Button Content="Sharpening" Command="{Binding SharpeningCommand}" Width="100" Margin="5"/>
-
-
+            <wpfplot:WpfPlot x:Name="HistogramPlot" Height="200" Width="400" />
         </StackPanel>
         
-
     </Grid>
 </Window>

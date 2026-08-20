@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Input;
 using WpfApp1.Interfaces;
 using WpfApp1.Services;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace WpfApp1.ViewModels
 {
@@ -42,8 +43,8 @@ namespace WpfApp1.ViewModels
 
         private void Login (object parameter)
         {
-            var db = new DatabaseService();
-            bool isValid = db.ValidateUser(UserName, Password);
+            using var context = new AppDbContext();
+            bool isValid = context.Users.Any(u => u.username == UserName && u.password == Password); 
             if (isValid)
             {
                 
